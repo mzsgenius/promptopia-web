@@ -1,0 +1,64 @@
+// PrompTopia — Prisma Schema V1
+// Database: Supabase PostgreSQL
+// Migrations: npx prisma migrate dev
+// Runtime:    uses Supabase connection pooler (port 6543)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── User (synced from Supabase Auth) ──────────────
+model User {
+  id        String   @id @default(cuid())
+  supabaseId String  @unique
+  name      String?
+  email     String?  @unique
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cases     Case[]
+}
+
+// ── Case — core data object ────────────────────────
+model Case {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  category    String                    // "ai-startup" | "ai-side-hustle" | ...
+  tags        Json     @default("[]")   // ["Cursor","Claude","SaaS"]
+  tools       Json     @default("[]")   // ["Cursor","Claude 3.5 Sonnet"]
+  summary     String                    // 20-250 chars, SEO description
+  content     String   @db.Text         // Markdown body
+
+  // ── SEO enhancement fields (Day 3) ─────────────
+  intent       String?                  // "副业" | "创业" | "自动化" | "学习" | "效率提升"
+  resultType   String?                  // "收入" | "效率" | "技能" | "产品" | "流量"
+  primaryTool  String?                  // 主要AI工具，用于seoKeywords聚合
+  seoKeywords  Json     @default("[]")  // ["AI副业案例","Cursor开发","SaaS复盘"]
+
+  // ── metrics ────────────────────────────────────
+  timeSpent   Int?                      // hours
+  income      Int?                      // monthly income in CNY
+  workflow    Json?                     // [{step,title,tool,duration,desc}]
+  lessons     String?  @db.Text         // 踩坑/教训
+  projectLink String?
+  coverUrl    String?
+  difficulty  Int?                      // 1-5 scale
+
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+
+  viewCount    Int      @default(0)
+  likeCount    Int      @default(0)
+  bookmarkCount Int     @default(0)
+
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
