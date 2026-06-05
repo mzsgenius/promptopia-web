@@ -1,0 +1,12 @@
+// quick-check.mjs
+import { Client } from "ssh2";
+const c = new Client();
+c.on("ready", () => {
+  c.exec(`pm2 status && echo "---" && ss -tlnp | grep -E ":(80|3000)"`, (e, s) => {
+    let o = "";
+    s.on("data", (d) => o += d.toString());
+    s.stderr.on("data", (d) => o += d.toString());
+    s.on("close", () => { console.log(o); c.end(); });
+  });
+});
+c.connect({ host: "150.109.70.58", port: 22, username: "root", password: "Mmzzss060112" });

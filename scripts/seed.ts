@@ -77,7 +77,7 @@ async function main() {
     lessons: c.content.includes("## 踩坑")
       ? (c.content.split("## 踩坑")[1]?.split("\n##")[0]?.trim() ?? null)
       : null,
-    projectLink: null, coverUrl: null, workflow: null, timeSpent: null, income: null,
+    projectLink: null, coverUrl: null, timeSpent: null, income: null,
     viewCount: Math.floor(Math.random() * 200),
     likeCount: Math.floor(Math.random() * 50),
     bookmarkCount: Math.floor(Math.random() * 20),

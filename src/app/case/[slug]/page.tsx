@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MarkdownRenderer } from "@/components/case/md-renderer";
 import { CaseMetaCard } from "@/components/case/case-meta-card";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -146,8 +147,8 @@ export default async function CaseDetailPage({ params }: Props) {
       </div>
 
       {/* body */}
-      <article className="prose prose-neutral dark:prose-invert max-w-none mb-8 whitespace-pre-wrap">
-        {c.content}
+      <article className="prose prose-neutral dark:prose-invert max-w-none mb-8">
+        <MarkdownRenderer content={c.content} />
       </article>
 
       {/* lessons */}

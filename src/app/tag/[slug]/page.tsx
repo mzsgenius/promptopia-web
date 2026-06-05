@@ -75,7 +75,21 @@ export default async function TagPage({ params }: Props) {
     ? await prisma.user.findMany({ where: { id: { in: authorIds } }, select: { id: true, name: true, avatar: true } })
     : [];
   const authorMap = Object.fromEntries(authors.map((a) => [a.id, a]));
-  const cases = rows.map((r: RawRow) => ({ ...r, author: authorMap[r.authorId as string] ?? null }));
+  type HydratedRow = {
+    id: string; slug: string; title: string; summary: string;
+    tags: unknown; category: string; likeCount: number; viewCount: number;
+    publishedAt: Date; author: { id: string; name: string | null; avatar: string | null } | null;
+  };
+  const cases: HydratedRow[] = rows.map((r: RawRow) => {
+    const a = authorMap[r.authorId as string] ?? null;
+    return {
+      id: r.id as string, slug: r.slug as string, title: r.title as string,
+      summary: r.summary as string, tags: r.tags, category: r.category as string,
+      likeCount: Number(r.likeCount ?? 0), viewCount: Number(r.viewCount ?? 0),
+      publishedAt: new Date(r.publishedAt as string),
+      author: a ?? null,
+    };
+  });
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -89,8 +103,8 @@ export default async function TagPage({ params }: Props) {
       </p>
 
       <div className="flex flex-col gap-4">
-        {cases.map((c: RawRow) => (
-          <CaseCard key={c.id} item={toCaseItem(c)} />
+        {cases.map((c) => (
+          <CaseCard key={c.id as string} item={toCaseItem(c)} />
         ))}
       </div>
     </div>
