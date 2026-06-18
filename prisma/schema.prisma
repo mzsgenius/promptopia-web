@@ -14,15 +14,20 @@ datasource db {
 
 // ── User (synced from Supabase Auth) ──────────────
 model User {
-  id        String   @id @default(cuid())
-  supabaseId String  @unique
-  name      String?
-  email     String?  @unique
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  supabaseId String   @unique
+  name       String?
+  email      String?  @unique
+  avatar     String?
+  role       String   @default("user")    // "user" | "admin"
+  banned     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   cases     Case[]
+  likes     CaseLike[]
+  bookmarks CaseBookmark[]
+  comments  Comment[]
 }
 
 // ── Case — core data object ────────────────────────
@@ -50,6 +55,7 @@ model Case {
   projectLink String?
   coverUrl    String?
   difficulty  Int?                      // 1-5 scale
+  status      String   @default("approved")  // "pending" | "approved" | "rejected"
 
   authorId    String
   author      User     @relation(fields: [authorId], references: [id])
@@ -61,4 +67,118 @@ model Case {
   publishedAt DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  likes      CaseLike[]
+  bookmarks  CaseBookmark[]
+  comments   Comment[]
+
+  @@index([publishedAt])
+  @@index([category, publishedAt])
+  @@index([authorId])
+}
+
+// ── Case Like ──────────────────────────
+model CaseLike {
+  id        String   @id @default(cuid())
+  userId    String
+  caseId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, caseId])
+}
+
+// ── Case Bookmark ──────────────────────
+model CaseBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  caseId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, caseId])
+}
+
+// ── Comment ────────────────────────────
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  caseId    String
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  case   Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, createdAt])
+}
+
+// ── PageView (site-wide analytics) ──────
+model PageView {
+  id        String   @id @default(cuid())
+  date      String   @default("")       // YYYY-MM-DD
+  path      String   @default("/")
+  ip        String?                     // 访客 IP 地址
+  userId    String?                     // 登录用户的 Prisma User id
+  userName  String?                     // 登录用户的昵称
+  createdAt DateTime @default(now())
+
+  @@unique([ip, date])
+  @@index([date])
+}
+
+// ── License Product (e.g. "AI项目导师 · 专业版 ¥39.9") ──
+model LicenseProduct {
+  id        String   @id @default(cuid())
+  name      String
+  price     Int                         // price in fen (3990 = ¥39.9)
+  duration  Int?                        // validity days, null = lifetime
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  orders      Order[]      @relation("ProductOrders")
+  licenseKeys LicenseKey[]
+}
+
+// ── Order (user submits WeChat payment info) ──────────
+model Order {
+  id            String   @id @default(cuid())
+  productId     String
+  userId        String?
+  userName      String?
+  userEmail     String?
+  userContact   String?                 // WeChat ID / phone
+  amount        Int                     // price in fen
+  paymentMethod String?                 // "wechat"
+  paymentProof  String?                 // WeChat transaction ID / screenshot URL
+  status        String   @default("pending")  // "pending" | "approved" | "rejected"
+  adminNotes    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product    LicenseProduct @relation(fields: [productId], references: [id], name: "ProductOrders")
+  licenseKey LicenseKey?
+}
+
+// ── License Key (one-time use) ────────────────────────
+model LicenseKey {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  productId   String
+  orderId     String?   @unique
+  userId      String?
+  activated   Boolean   @default(false)
+  activatedAt DateTime?
+  deviceInfo  String?
+  expiredAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  order   Order?          @relation(fields: [orderId], references: [id])
+  product LicenseProduct  @relation(fields: [productId], references: [id])
 }
